@@ -373,4 +373,79 @@ const updateUserCoverImage = asyncHandler( async(req, res) => {
     )
 })
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage }
+// mongodb aggregation pipeline
+const getUserChannelProfile = asyncHandler( async(req, res) => {
+
+    // it's like get username from url
+    const { username } = req.params
+
+    if (!username?.trim()) {
+        throw new apiError(400, "username is missing")
+    }
+
+    // get aggregate: a method that pass Array, pipeline: like $lookup etc.
+    const channel = await User.aggregate([
+        {
+            $match: {
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",  // get from model
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"   // name of pipeline
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        },
+        {
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers"   // for count $ itself field
+                },
+                channelsSubscribedToCount: {
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: {$in: [req.user?._id, "$subscribers.subscriber"]},  // $in operator for calc in arr,obj
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                fullName: 1,   // 1 means it's exist
+                username: 1,
+                email: 1,
+                coverImage: 1,
+                avatar: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1
+            }
+        }
+    ])
+
+    if (!channel?.length) {
+        throw new apiError(404, "channel does not exists")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new apiResponse(200, channel[0], "User channel fetched successfully")
+    )
+})
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, getUserChannelProfile }

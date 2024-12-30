@@ -448,4 +448,70 @@ const getUserChannelProfile = asyncHandler( async(req, res) => {
     )
 })
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, getUserChannelProfile }
+// mongodb aggregation sub pipeline
+const getWatchHistory = asyncHandler( async(req, res) => {
+
+    const user = await User.aggregate([
+        {
+            $watch: {
+                _id: new mongoose.Types.ObjectId(req.user.id) // get id by using 'new' keyword for object | get user access
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                // for nested $lookup(pipeline) for 'owner' in video model
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            // like sub pipeline
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1,
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    // for frontend ease, override owner
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json( new apiResponse(200, user[0].watchHistory, "Watch history fetched successfully") )
+
+})
+
+export { 
+    registerUser, 
+    loginUser, 
+    logoutUser, 
+    refreshAccessToken, 
+    changeCurrentPassword, 
+    getCurrentUser, 
+    updateAccountDetails, 
+    updateUserAvatar, 
+    updateUserCoverImage, 
+    getUserChannelProfile, 
+    getWatchHistory 
+}

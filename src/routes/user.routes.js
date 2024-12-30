@@ -1,11 +1,24 @@
 import { Router } from "express";
-import { registerUser, loginUser, logoutUser, refreshAccessToken } from "../controllers/user.controller.js";
+import { 
+    registerUser, 
+    loginUser, 
+    logoutUser, 
+    refreshAccessToken, 
+    changeCurrentPassword, 
+    getCurrentUser, 
+    updateAccountDetails, 
+    updateUserAvatar, 
+    updateUserCoverImage, 
+    getUserChannelProfile, 
+    getWatchHistory 
+} from "../controllers/user.controller.js";
 import { upload } from '../middlewares/multer.middleware.js'
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
 // Middleware always appear in get or post method (middleware, routeMethod)
+// Middlewares: 1.verifyJWT(for loggedIn), 2.upload(for file upload)
 
 router.route("/register").post(
     upload.fields([
@@ -20,11 +33,24 @@ router.route("/register").post(
     ]),
     registerUser
 )
-
 router.route("/login").post(loginUser)
 
 // secured routes
 router.route("/logout").post(verifyJWT, logoutUser)
 router.route("/refresh-token").post(refreshAccessToken)
+
+// for updates
+router.route("/change-password").post(verifyJWT, changeCurrentPassword)
+router.route("/current-user").get(verifyJWT, getCurrentUser)
+router.route("/update-account").patch(verifyJWT, updateAccountDetails)
+
+// for file
+router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar)
+router.route("/cover-image").patch(verifyJWT, upload.single("/coverImage"), updateUserCoverImage)
+
+// for aggregation pipeline
+// because of params: /c/:
+router.route("/c/:username").get(verifyJWT, getUserChannelProfile)
+router.route("/history").get(verifyJWT, getWatchHistory)
 
 export default router

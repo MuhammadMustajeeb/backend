@@ -5,6 +5,7 @@ import uploadOnCloudinary from '../utils/cloudinary.js';
 import apiResponse from '../utils/apiResponse.js';
 import req from "express/lib/request.js";
 import jwt from 'jsonwebtoken';
+import mongoose from "mongoose";
 
 // access and refresh token
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -169,8 +170,8 @@ const logoutUser = asyncHandler( async(req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined   // for update value $set: mongodb operator
+            $unset: {
+                refreshToken: 1   // this remove the field from document $unset: mongodb operator
             }
         },
         {
@@ -453,8 +454,8 @@ const getWatchHistory = asyncHandler( async(req, res) => {
 
     const user = await User.aggregate([
         {
-            $watch: {
-                _id: new mongoose.Types.ObjectId(req.user.id) // get id by using 'new' keyword for object | get user access
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id) // get id by using 'new' keyword for object | get user access
             }
         },
         {

@@ -46,10 +46,10 @@ router.route("/update-account").patch(verifyJWT, updateAccountDetails)
 
 // for file
 router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar)
-router.route("/cover-image").patch(verifyJWT, upload.single("/coverImage"), updateUserCoverImage)
+router.route("/cover-image").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
 
 // for aggregation pipeline
-// because of params: /c/:
+// because of params must':'  /c/:
 router.route("/c/:username").get(verifyJWT, getUserChannelProfile)
 router.route("/history").get(verifyJWT, getWatchHistory)
 
